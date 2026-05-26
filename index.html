@@ -81,7 +81,7 @@
     }
     .btn-sm:hover { background: var(--color-background-secondary); }
 
-    .body { display: grid; grid-template-columns: 164px 1fr; flex: 1; min-height: 0; }
+    .body { display: grid; grid-template-columns: 328px 1fr; flex: 1; min-height: 0; }
 
     .sidebar {
       border-right: 0.5px solid var(--color-border-tertiary);
@@ -90,9 +90,15 @@
       display: flex; flex-direction: column; gap: 5px;
       overflow-y: auto;
     }
+    .sidebar-cols {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 0 10px; flex: 1;
+      margin-top: 25px;
+    }
+    .sidebar-col { display: flex; flex-direction: column; gap: 5px; }
+    .sidebar-col .sec-lbl { margin-top: 0; }
     .sec-lbl {
-      font-size: 10px; font-weight: 500; letter-spacing: .08em;
-      text-transform: uppercase; color: var(--color-text-tertiary);
+      font-size: 15px; font-weight: 700; letter-spacing: .08em;
+      text-transform: uppercase; color: #ffffff;
       margin: 7px 0 3px;
     }
     .sec-lbl:first-child { margin-top: 0; }
@@ -168,7 +174,7 @@
     .dd-row select {
       flex: 1; font-size: 11px; font-weight: 500; padding: 2px 4px;
       border-radius: var(--border-radius-md);
-      border: 0.5px solid #3B6D11; background: #D6EDBA; color: #C0230A; cursor: pointer;
+      border: 0.5px solid #3B6D11; background: #D6EDBA; color: inherit; cursor: pointer;
     }
 
     .level-label {
@@ -257,17 +263,27 @@
   </div>
   <div class="body">
     <div class="sidebar" id="sidebar">
-      <div class="sec-lbl">Sources</div>
-      <div class="tile" draggable="true" id="tsrc24">
-        <div class="tile-name">24VDC source</div>
-        <div class="tile-badges"><span class="badge bsrc">24VDC</span><span class="badge bv24">24VDC boards</span></div>
+      <div class="sec-lbl">Power sources</div>
+      <div style="display:flex;gap:8px;margin-bottom:2px">
+        <div class="tile" draggable="true" id="tsrc24" style="flex:1">
+          <div class="tile-name">24VDC source</div>
+          <div class="tile-badges"><span class="badge bv24">24VDC</span></div>
+        </div>
+        <div class="tile" draggable="true" id="tsrc12" style="flex:1">
+          <div class="tile-name">12VDC source</div>
+          <div class="tile-badges"><span class="badge bv12">12VDC</span></div>
+        </div>
       </div>
-      <div class="tile" draggable="true" id="tsrc12">
-        <div class="tile-name">12VDC source</div>
-        <div class="tile-badges"><span class="badge bsrc">12VDC</span><span class="badge bv12">any board</span></div>
+      <div class="sidebar-cols">
+        <div class="sidebar-col">
+          <div class="sec-lbl" style="color:#534AB7">24VDC boards</div>
+          <div id="sb24"></div>
+        </div>
+        <div class="sidebar-col">
+          <div class="sec-lbl" style="color:#0F6E56">12VDC boards</div>
+          <div id="sb12"></div>
+        </div>
       </div>
-      <div class="sec-lbl">24VDC boards</div><div id="sb24"></div>
-      <div class="sec-lbl">12VDC boards</div><div id="sb12"></div>
     </div>
     <div class="canvas">
       <div class="cbg" id="cbg">
@@ -294,11 +310,11 @@
 
 <script>
 const BOARDS=[
-  // 24VDC — alphabetical
-  {id:'minio24',  name:'MINIO',     draw:640,  passP:.85, outputFixed:500, v24:true},
-  {id:'remio24',  name:'REMIO',     draw:1420, passP:.85, outputFixed:500, v24:true},
+  // 24VDC — custom order: S1000 UL, S1000 ULC, REMIO, MINIO
   {id:'s1000ul',  name:'S1000 UL',  draw:1460, passP:.80, outputFixed:500, v24:true},
   {id:'s1000ulc', name:'S1000 ULC', draw:1340, passP:.80, outputFixed:380, v24:true},
+  {id:'remio24',  name:'REMIO',     draw:1420, passP:.85, outputFixed:500, v24:true},
+  {id:'minio24',  name:'MINIO',     draw:640,  passP:.85, outputFixed:500, v24:true},
   // 12VDC — alphabetical
   {id:'2adi',     name:'2ADI',      draw:60,   passP:1.0, v24:false},
   {id:'audio4',   name:'AUDIO4',    draw:800,  passP:1.0, v24:false},
@@ -437,7 +453,7 @@ function buildSidebar(){
     t.innerHTML=`<div class="tile-name">${b.name}</div>
       <div class="tile-badges">
         <span class="badge ${b.v24?'bv24':'bv12'}">${b.v24?'24VDC':'12VDC'}</span>
-        <span class="badge bdraw">&#8722;${b.draw} mA</span>
+        <span class="badge bdraw">${b.draw} mA</span>
       </div>`;
     t.addEventListener('dragstart',e=>{dragPayload={type:'board',bid:b.id};e.dataTransfer.effectAllowed='copy';});
     t.addEventListener('touchstart',e=>touchStartTile(e,{type:'board',bid:b.id},b.name),{passive:false});
@@ -569,7 +585,7 @@ function makeBoardNode(b,cls,rcv,draw,right,label,short,rail,onRemove){
     <div class="bn-sub">&#8722;${draw} mA</div>
     <div class="bn-cur">${short?'&#9889; overload':'&#8594; '+right+' mA'}</div>`;
   const rm=document.createElement('button');rm.className='bn-rm';rm.textContent='×';rm.title='Remove';
-  rm.addEventListener('click',e=>{e.stopPropagation();onRemove();});
+  rm.addEventListener('click',e=>{e.stopPropagation();tt_el.style.display='none';onRemove();});
   d.appendChild(rm);
   d.addEventListener('mouseenter',ev=>showTT(ev,rail,rcv,draw,right,label,short));
   d.addEventListener('mouseleave',()=>tt_el.style.display='none');
@@ -648,7 +664,7 @@ function renderGroup(g){
   srcBlock.appendChild(ddRow);
 
   const rmBtn=document.createElement('button');rmBtn.className='sb-rm';rmBtn.textContent='×';rmBtn.title='Remove source';
-  rmBtn.addEventListener('click',()=>{groups=groups.filter(x=>x.id!==g.id);renderAll();});
+  rmBtn.addEventListener('click',()=>{tt_el.style.display='none';groups=groups.filter(x=>x.id!==g.id);renderAll();});
   srcBlock.appendChild(rmBtn);
 
   let dragging=false,ox=0,oy=0;
