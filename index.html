@@ -113,8 +113,8 @@
     .tile-name { font-size: 12px; font-weight: 500; }
     .tile-badges { display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap; }
     .badge { font-size: 10px; padding: 1px 6px; border-radius: 20px; }
-    .bv24 { background: #EEEDFE; color: #3C3489; }
-    .bv12 { background: #E1F5EE; color: #085041; }
+    .bv24 { background: #D8D5FC; color: #3C3489; }
+    .bv12 { background: #B8E8D4; color: #085041; }
     .bdraw { background: #FAEEDA; color: #633806; }
     .bsrc { background: #F1EFE8; color: #444441; }
 
@@ -136,8 +136,8 @@
       cursor: grab; position: relative; touch-action: none;
     }
     .src-block:active { cursor: grabbing; }
-    .sb24 { background: #EEEDFE; border-color: #534AB7; }
-    .sb12 { background: #E1F5EE; border-color: #0F6E56; }
+    .sb24 { background: #D8D5FC; border-color: #534AB7; }
+    .sb12 { background: #B8E8D4; border-color: #0F6E56; }
     .sb24 .sb-title,.sb24 .sb-cur,.sb24 .sb-stats,.sb24 .sb-remaining,.sb24 .sb-util,.sb24 .dd-row label { color: #3C3489; }
     .sb12 .sb-title,.sb12 .sb-cur,.sb12 .sb-stats,.sb12 .sb-remaining,.sb12 .sb-util,.sb12 .dd-row label { color: #085041; }
     .sb-title { font-size: 12px; font-weight: 500; }
@@ -146,10 +146,10 @@
     .sb-remaining { font-size: 10px; margin-top: 2px; opacity: .85; }
     .sb-util { font-size: 10px; font-weight: 500; margin-top: 2px; }
     .sb-rm {
-      position: absolute; top: -6px; right: -6px;
-      width: 16px; height: 16px; border-radius: 50%;
+      position: absolute; top: -9px; right: -9px;
+      width: 24px; height: 24px; border-radius: 50%;
       background: #FCEBEB; color: #A32D2D; border: none;
-      font-size: 11px; cursor: pointer;
+      font-size: 16px; cursor: pointer;
       display: flex; align-items: center; justify-content: center;
       padding: 0; line-height: 1; z-index: 2;
     }
@@ -174,7 +174,7 @@
     .dd-row select {
       flex: 1; font-size: 11px; font-weight: 500; padding: 2px 4px;
       border-radius: var(--border-radius-md);
-      border: 0.5px solid #3B6D11; background: #D6EDBA; color: inherit; cursor: pointer;
+      border: 0.5px solid #3B6D11; background: #D6EDBA; color: #000000; cursor: pointer;
     }
 
     .level-label {
@@ -186,20 +186,20 @@
       border-radius: var(--border-radius-md); border: 1.5px solid;
       padding: 6px 8px; text-align: center; position: relative; cursor: default;
     }
-    .bn24 { background: #EEEDFE; border-color: #534AB7; }
-    .bn12 { background: #E6F1FB; border-color: #185FA5; }
+    .bn24 { background: #D8D5FC; border-color: #534AB7; }
+    .bn12 { background: #B8E8D4; border-color: #0F6E56; }
     .bnerr { background: #FCEBEB; border-color: #E24B4A; }
     .bn24 .bn-name,.bn24 .bn-sub,.bn24 .bn-cur { color: #3C3489; }
-    .bn12 .bn-name,.bn12 .bn-sub,.bn12 .bn-cur { color: #0C447C; }
+    .bn12 .bn-name,.bn12 .bn-sub,.bn12 .bn-cur { color: #085041; }
     .bnerr .bn-name,.bnerr .bn-sub,.bnerr .bn-cur { color: #791F1F; }
     .bn-name { font-size: 11px; font-weight: 500; line-height: 1.2; }
     .bn-sub { font-size: 9px; margin-top: 1px; opacity: .85; }
     .bn-cur { font-size: 9px; font-weight: 500; margin-top: 2px; }
     .bn-rm {
-      position: absolute; top: -5px; right: -5px;
-      width: 14px; height: 14px; border-radius: 50%;
+      position: absolute; top: -8px; right: -8px;
+      width: 22px; height: 22px; border-radius: 50%;
       background: #FCEBEB; color: #A32D2D; border: none;
-      font-size: 10px; cursor: pointer;
+      font-size: 15px; cursor: pointer;
       display: flex; align-items: center; justify-content: center;
       padding: 0; line-height: 1;
     }
@@ -212,7 +212,7 @@
       color: var(--color-text-tertiary); font-size: 10px;
       cursor: default; display: flex; align-items: center; justify-content: center;
     }
-    .drop-node.drag-ok { border-color: #1D9E75; background: #E1F5EE22; color: #085041; }
+    .drop-node.drag-ok { border-color: #1D9E75; background: #B8E8D422; color: #085041; }
     .drop-node.drag-bad { border-color: #E24B4A; background: #FCEBEB44; color: #A32D2D; }
 
     .reject-flash {
