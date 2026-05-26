@@ -627,8 +627,8 @@ function renderGroup(g){
       }
     });
 
-    [{y:Y0+SRC_H/2-7,t:'24VDC Supply'},{y:Y1+NODE_H/2-7,t:'24VDC'},{y:Y2+NODE_H/2-7,t:'12VDC'}].forEach(({y,t})=>{
-      const ll=document.createElement('div');ll.className='level-label';ll.style.cssText=`top:${y}px;left:-62px`;ll.textContent=t;container.appendChild(ll);
+    [{y:Y0+SRC_H/2-14,t:'24VDC\nSupply'},{y:Y1+NODE_H/2-7,t:'24VDC'},{y:Y2+NODE_H/2-7,t:'12VDC'}].forEach(({y,t})=>{
+      const ll=document.createElement('div');ll.className='level-label';ll.style.cssText=`top:${y}px;left:-68px;white-space:pre;text-align:right;line-height:1.4`;ll.textContent=t;container.appendChild(ll);
     });
 
   } else {
@@ -664,8 +664,8 @@ function renderGroup(g){
       }
     });
 
-    [{y:Y0+SRC_H/2-7,t:'12VDC Supply'},{y:Y1+NODE_H/2-7,t:'12VDC'}].forEach(({y,t})=>{
-      const ll=document.createElement('div');ll.className='level-label';ll.style.cssText=`top:${y}px;left:-62px`;ll.textContent=t;container.appendChild(ll);
+    [{y:Y0+SRC_H/2-14,t:'12VDC\nSupply'},{y:Y1+NODE_H/2-7,t:'12VDC'}].forEach(({y,t})=>{
+      const ll=document.createElement('div');ll.className='level-label';ll.style.cssText=`top:${y}px;left:-68px;white-space:pre;text-align:right;line-height:1.4`;ll.textContent=t;container.appendChild(ll);
     });
   }
 
