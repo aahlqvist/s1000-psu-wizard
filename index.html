@@ -71,7 +71,7 @@
       background: var(--color-background-primary);
     }
     .hdr-icon { font-size: 17px; color: var(--color-text-secondary); }
-    .hdr-title { font-size: 14px; font-weight: 500; }
+    .hdr-title { font-size: 21px; font-weight: 500; }
     .btn-sm {
       font-size: 12px; padding: 4px 10px;
       border-radius: var(--border-radius-md);
@@ -97,7 +97,7 @@
     .sidebar-col { display: flex; flex-direction: column; gap: 5px; }
     .sidebar-col .sec-lbl { margin-top: 0; }
     .sec-lbl {
-      font-size: 15px; font-weight: 700; letter-spacing: .08em;
+      font-size: 13px; font-weight: 700; letter-spacing: .08em;
       text-transform: uppercase; color: #ffffff;
       margin: 7px 0 3px;
     }
@@ -255,8 +255,17 @@
 
 <div class="app">
   <div class="hdr">
-    <svg class="hdr-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-      <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/>
+    <svg class="hdr-icon" width="28" height="20" viewBox="0 0 56 40" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+      <!-- terminal nubs on top -->
+      <rect x="14" y="0" width="8" height="5" rx="1.5" fill="currentColor" stroke="none"/>
+      <rect x="34" y="0" width="8" height="5" rx="1.5" fill="currentColor" stroke="none"/>
+      <!-- main body -->
+      <rect x="2" y="5" width="52" height="33" rx="4"/>
+      <!-- plus sign -->
+      <line x1="16" y1="18" x2="16" y2="26"/>
+      <line x1="12" y1="22" x2="20" y2="22"/>
+      <!-- minus sign -->
+      <line x1="36" y1="22" x2="44" y2="22"/>
     </svg>
     <span class="hdr-title">S1000 Power Supply Wizard</span>
     <button class="btn-sm" id="btn-clear">Clear canvas</button>
