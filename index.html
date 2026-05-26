@@ -101,7 +101,7 @@
       border-radius: var(--border-radius-md);
       padding: 7px 9px;
       background: var(--color-background-primary);
-      cursor: grab; user-select: none;
+      cursor: grab; user-select: none; touch-action: none;
     }
     .tile:hover { border-color: var(--color-border-primary); }
     .tile-name { font-size: 12px; font-weight: 500; }
@@ -127,7 +127,7 @@
       border-radius: var(--border-radius-md);
       border: 1.5px solid;
       padding: 8px 10px 8px 12px;
-      cursor: grab; position: relative;
+      cursor: grab; position: relative; touch-action: none;
     }
     .src-block:active { cursor: grabbing; }
     .sb24 { background: #EEEDFE; border-color: #534AB7; }
@@ -320,6 +320,111 @@ const cbg=document.getElementById('cbg');
 const dmsg=document.getElementById('dmsg');
 const tt_el=document.getElementById('tt');
 
+// ── Touch drag state ──────────────────────────────────────────────
+let touchGhost=null, touchDropTarget=null;
+
+function createGhost(text,x,y){
+  removeGhost();
+  touchGhost=document.createElement('div');
+  touchGhost.style.cssText=`position:fixed;z-index:99999;pointer-events:none;padding:6px 10px;
+    background:#534AB7;color:#fff;border-radius:6px;font-size:11px;font-weight:500;
+    opacity:0.88;transform:translate(-50%,-50%);white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.25)`;
+  touchGhost.textContent=text;
+  document.body.appendChild(touchGhost);
+  moveGhost(x,y);
+}
+function moveGhost(x,y){
+  if(touchGhost){touchGhost.style.left=x+'px';touchGhost.style.top=y+'px';}
+}
+function removeGhost(){
+  if(touchGhost){touchGhost.remove();touchGhost=null;}
+}
+
+function elementAtTouch(touch){
+  // temporarily hide ghost so elementFromPoint can see through it
+  if(touchGhost) touchGhost.style.display='none';
+  const el=document.elementFromPoint(touch.clientX,touch.clientY);
+  if(touchGhost) touchGhost.style.display='';
+  return el;
+}
+
+function closestDropNode(el){
+  // walk up to find a .drop-node or the cbg (for source drops)
+  let cur=el;
+  while(cur&&cur!==document.body){
+    if(cur.classList&&cur.classList.contains('drop-node')) return cur;
+    if(cur===cbg) return cur;
+    cur=cur.parentElement;
+  }
+  return null;
+}
+
+function touchStartTile(e,payload,label){
+  if(e.touches.length!==1) return;
+  e.preventDefault();
+  dragPayload=payload;
+  const t=e.touches[0];
+  createGhost(label,t.clientX,t.clientY);
+}
+
+function touchMoveTile(e){
+  if(!dragPayload) return;
+  e.preventDefault();
+  const t=e.touches[0];
+  moveGhost(t.clientX,t.clientY);
+  // highlight drop target
+  const el=elementAtTouch(t);
+  const dn=closestDropNode(el);
+  if(dn&&dn!==cbg){
+    if(touchDropTarget&&touchDropTarget!==dn) touchDropTarget.classList.remove('drag-ok','drag-bad');
+    touchDropTarget=dn;
+    if(dragPayload.type==='board'){
+      const b=BOARDS.find(x=>x.id===dragPayload.bid);
+      const allowOnly=dn.dataset.allowOnly;
+      const ok=allowOnly==='v24'?b.v24:allowOnly==='v12'?!b.v24:true;
+      dn.classList.toggle('drag-ok',ok);dn.classList.toggle('drag-bad',!ok);
+    } else {
+      dn.classList.add('drag-ok');
+    }
+  } else {
+    if(touchDropTarget){touchDropTarget.classList.remove('drag-ok','drag-bad');touchDropTarget=null;}
+  }
+}
+
+function touchEndTile(e){
+  if(!dragPayload){removeGhost();return;}
+  e.preventDefault();
+  const t=e.changedTouches[0];
+  moveGhost(t.clientX,t.clientY);
+  const el=elementAtTouch(t);
+  const dn=closestDropNode(el);
+
+  if(touchDropTarget){touchDropTarget.classList.remove('drag-ok','drag-bad');touchDropTarget=null;}
+
+  if(dn===cbg&&dragPayload.type==='src'){
+    // drop source onto canvas
+    const rect=cbg.getBoundingClientRect();
+    const x=Math.max(8,t.clientX-rect.left-SRC_W/2);
+    const y=Math.max(8,t.clientY-rect.top-20);
+    groups.push({id:++gid,volt:dragPayload.volt,x,y,supply:2000,boards24:[],outputs:{}});
+    dragPayload=null;removeGhost();renderAll();return;
+  }
+
+  if(dn&&dn!==cbg&&dn._touchOnDrop&&dragPayload.type==='board'){
+    const b=BOARDS.find(x=>x.id===dragPayload.bid);
+    const allowOnly=dn.dataset.allowOnly;
+    const ok=allowOnly==='v24'?b.v24:allowOnly==='v12'?!b.v24:true;
+    if(!ok){
+      const fl=document.createElement('div');fl.className='reject-flash';
+      fl.innerHTML=`<span>${allowOnly==='v24'?'24VDC boards only':'12VDC boards only'}</span>`;
+      dn.appendChild(fl);setTimeout(()=>fl.remove(),1400);
+    } else {
+      dn._touchOnDrop(dragPayload.bid);
+    }
+  }
+  dragPayload=null;removeGhost();
+}
+
 document.getElementById('btn-clear').addEventListener('click',()=>{groups=[];renderAll();});
 document.addEventListener('mousemove',ev=>{
   if(tt_el.style.display==='block'){tt_el.style.left=(ev.clientX+14)+'px';tt_el.style.top=(ev.clientY-8)+'px';}
@@ -335,12 +440,21 @@ function buildSidebar(){
         <span class="badge bdraw">&#8722;${b.draw} mA</span>
       </div>`;
     t.addEventListener('dragstart',e=>{dragPayload={type:'board',bid:b.id};e.dataTransfer.effectAllowed='copy';});
+    t.addEventListener('touchstart',e=>touchStartTile(e,{type:'board',bid:b.id},b.name),{passive:false});
+    t.addEventListener('touchmove',touchMoveTile,{passive:false});
+    t.addEventListener('touchend',touchEndTile,{passive:false});
     document.getElementById(b.v24?'sb24':'sb12').appendChild(t);
   });
 }
 
 document.getElementById('tsrc24').addEventListener('dragstart',e=>{dragPayload={type:'src',volt:24};e.dataTransfer.effectAllowed='copy';});
 document.getElementById('tsrc12').addEventListener('dragstart',e=>{dragPayload={type:'src',volt:12};e.dataTransfer.effectAllowed='copy';});
+document.getElementById('tsrc24').addEventListener('touchstart',e=>touchStartTile(e,{type:'src',volt:24},'24VDC source'),{passive:false});
+document.getElementById('tsrc24').addEventListener('touchmove',touchMoveTile,{passive:false});
+document.getElementById('tsrc24').addEventListener('touchend',touchEndTile,{passive:false});
+document.getElementById('tsrc12').addEventListener('touchstart',e=>touchStartTile(e,{type:'src',volt:12},'12VDC source'),{passive:false});
+document.getElementById('tsrc12').addEventListener('touchmove',touchMoveTile,{passive:false});
+document.getElementById('tsrc12').addEventListener('touchend',touchEndTile,{passive:false});
 
 cbg.addEventListener('dragover',e=>e.preventDefault());
 cbg.addEventListener('drop',e=>{
@@ -421,6 +535,8 @@ function makeDropNode(label,allowOnly,onDrop){
   const d=document.createElement('div');d.className='drop-node';
   d.style.cssText=`width:${NODE_W}px;height:${DROP_H}px;position:absolute`;
   d.textContent=label;
+  d.dataset.allowOnly=allowOnly;
+  d._touchOnDrop=onDrop;
   d.addEventListener('dragover',e=>{
     e.preventDefault();e.stopPropagation();
     if(!dragPayload||dragPayload.type!=='board') return;
@@ -541,13 +657,28 @@ function renderGroup(g){
     dragging=true;const r=container.getBoundingClientRect();ox=e.clientX-r.left;oy=e.clientY-r.top;
     srcBlock.style.cursor='grabbing';e.preventDefault();
   });
+  srcBlock.addEventListener('touchstart',e=>{
+    if(e.target.closest('button')||e.target.tagName==='SELECT') return;
+    if(e.touches.length!==1) return;
+    dragging=true;const r=container.getBoundingClientRect();
+    ox=e.touches[0].clientX-r.left;oy=e.touches[0].clientY-r.top;
+    e.preventDefault();
+  },{passive:false});
   document.addEventListener('mousemove',e=>{
     if(!dragging) return;
     const pr=cbg.getBoundingClientRect();
     g.x=Math.max(4,e.clientX-pr.left-ox-70);g.y=Math.max(4,e.clientY-pr.top-oy);
     container.style.left=(g.x+70)+'px';container.style.top=g.y+'px';
   });
+  document.addEventListener('touchmove',e=>{
+    if(!dragging) return;
+    e.preventDefault();
+    const pr=cbg.getBoundingClientRect();
+    g.x=Math.max(4,e.touches[0].clientX-pr.left-ox-70);g.y=Math.max(4,e.touches[0].clientY-pr.top-oy);
+    container.style.left=(g.x+70)+'px';container.style.top=g.y+'px';
+  },{passive:false});
   document.addEventListener('mouseup',()=>{if(dragging){dragging=false;srcBlock.style.cursor='grab';}});
+  document.addEventListener('touchend',()=>{if(dragging){dragging=false;}});
   container.appendChild(srcBlock);
 
   const c24color='#534AB7';
