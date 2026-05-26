@@ -157,7 +157,11 @@
     }
     .ind-ok   { background: radial-gradient(circle at 35% 35%,#a8e05a,#4e9a06); border-color: #3B6D11; box-shadow: 0 0 8px 2px rgba(99,153,34,.45); }
     .ind-warn { background: radial-gradient(circle at 35% 35%,#ffd97a,#d47f00); border-color: #854F0B; box-shadow: 0 0 8px 2px rgba(239,159,39,.45); }
-    .ind-over { background: radial-gradient(circle at 35% 35%,#ff7e7e,#c41c1c); border-color: #A32D2D; box-shadow: 0 0 8px 2px rgba(226,75,74,.45); }
+    .ind-over { background: radial-gradient(circle at 35% 35%,#ff7e7e,#c41c1c); border-color: #A32D2D; box-shadow: 0 0 8px 2px rgba(226,75,74,.45); animation: flash-red 0.5s step-start infinite; }
+    @keyframes flash-red {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.15; }
+    }
 
     .dd-row { display: flex; align-items: center; gap: 6px; margin-top: 7px; }
     .dd-row label { font-size: 10px; white-space: nowrap; opacity: .8; }
@@ -282,19 +286,19 @@
 
 <div class="tt" id="tt">
   <div class="ttr"><span class="ttl">Rail</span><span class="ttv" id="tv"></span></div>
-  <div class="ttr"><span class="ttl">Receives</span><span class="ttv" id="tr"></span></div>
-  <div class="ttr"><span class="ttl">Self draw</span><span class="ttv" id="td"></span></div>
-  <div class="ttr"><span class="ttl">Passes on / remaining</span><span class="ttv" id="tp"></span></div>
+  <div class="ttr"><span class="ttl">Supply current</span><span class="ttv" id="tr"></span></div>
+  <div class="ttr"><span class="ttl">Max load</span><span class="ttv" id="td"></span></div>
+  <div class="ttr"><span class="ttl" id="tpl">Output current</span><span class="ttv" id="tp"></span></div>
   <div class="ttr"><span class="ttl">Status</span><span class="ttv" id="tst"></span></div>
 </div>
 
 <script>
 const BOARDS=[
   // 24VDC — alphabetical
-  {id:'minio24',  name:'MINIO',     draw:640,  passP:.85, v24:true},
-  {id:'remio24',  name:'REMIO',     draw:1420, passP:.85, v24:true},
-  {id:'s1000ul',  name:'S1000 UL',  draw:1460, passP:.80, v24:true},
-  {id:'s1000ulc', name:'S1000 ULC', draw:1460, passP:.80, v24:true},
+  {id:'minio24',  name:'MINIO',     draw:640,  passP:.85, outputFixed:500, v24:true},
+  {id:'remio24',  name:'REMIO',     draw:1420, passP:.85, outputFixed:500, v24:true},
+  {id:'s1000ul',  name:'S1000 UL',  draw:1460, passP:.80, outputFixed:500, v24:true},
+  {id:'s1000ulc', name:'S1000 ULC', draw:1340, passP:.80, outputFixed:380, v24:true},
   // 12VDC — alphabetical
   {id:'2adi',     name:'2ADI',      draw:60,   passP:1.0, v24:false},
   {id:'audio4',   name:'AUDIO4',    draw:800,  passP:1.0, v24:false},
@@ -361,7 +365,8 @@ function showTT(ev,rail,rcv,draw,right,label,short){
   document.getElementById('tv').textContent=rail;
   document.getElementById('tr').textContent=rcv+' mA';
   document.getElementById('td').textContent=draw+' mA';
-  document.getElementById('tp').textContent=short?'0 mA (overloaded)':(right+' mA ('+label+')');
+  document.getElementById('tp').textContent=short?'0 mA (overloaded)':(right+' mA');
+  document.getElementById('tpl').textContent=label;
   document.getElementById('tst').textContent=short?'Overloaded':'OK';
   tt_el.style.display='block';
   tt_el.style.left=(ev.clientX+14)+'px';tt_el.style.top=(ev.clientY-8)+'px';
@@ -369,7 +374,7 @@ function showTT(ev,rail,rcv,draw,right,label,short){
 
 function calc24(b,supply){
   const short=supply<b.draw;
-  const passed=short?0:Math.round((supply-b.draw)*b.passP);
+  const passed=short?0:(b.outputFixed!==undefined ? b.outputFixed : Math.round((supply-b.draw)*b.passP));
   return{short,passed};
 }
 
@@ -582,7 +587,7 @@ function renderGroup(g){
         const bidx=g.boards24.findIndex(x=>x.uid===uid);
         const b=BOARDS.find(x=>x.id===bid);
         const c=calc24(b,g.supply);
-        const nd=makeBoardNode(b,c.short?'bnerr':'bn24',g.supply,b.draw,c.passed,'passes on',c.short,'24VDC',()=>{
+        const nd=makeBoardNode(b,c.short?'bnerr':'bn24',g.supply,b.draw,c.passed,'Output current',c.short,'24VDC',()=>{
           g.boards24.splice(bidx,1);delete g.outputs[uid];renderAll();
         });
         nd.style.left=nx+'px';nd.style.top=Y1+'px';container.appendChild(nd);
@@ -613,7 +618,7 @@ function renderGroup(g){
             d2.style.left=nx2+'px';d2.style.top=Y2+'px';container.appendChild(d2);
           } else {
             const b12=BOARDS.find(x=>x.id===e2.bid12);
-            const nd12=makeBoardNode(b12,over12?'bnerr':'bn12',c.passed,b12.draw,left12,'shared remaining',over12,'12VDC (output of '+b.name+')',()=>{
+            const nd12=makeBoardNode(b12,over12?'bnerr':'bn12',c.passed,b12.draw,left12,'Remaining current',over12,'12VDC (output of '+b.name+')',()=>{
               outArr.splice(outArr.indexOf(e2.bid12),1);renderAll();
             });
             nd12.style.left=nx2+'px';nd12.style.top=Y2+'px';container.appendChild(nd12);
@@ -622,7 +627,7 @@ function renderGroup(g){
       }
     });
 
-    [{y:Y0+SRC_H/2-7,t:'1st level'},{y:Y1+NODE_H/2-7,t:'2nd level'},{y:Y2+NODE_H/2-7,t:'3rd level'}].forEach(({y,t})=>{
+    [{y:Y0+SRC_H/2-7,t:'24VDC Supply'},{y:Y1+NODE_H/2-7,t:'24VDC'},{y:Y2+NODE_H/2-7,t:'12VDC'}].forEach(({y,t})=>{
       const ll=document.createElement('div');ll.className='level-label';ll.style.cssText=`top:${y}px;left:-62px`;ll.textContent=t;container.appendChild(ll);
     });
 
@@ -652,14 +657,14 @@ function renderGroup(g){
         d.style.left=nx+'px';d.style.top=Y1+'px';container.appendChild(d);
       } else {
         const b=BOARDS.find(x=>x.id===entry.bid);
-        const nd=makeBoardNode(b,over12?'bnerr':'bn12',g.supply,b.draw,left12,'shared remaining',over12,'12VDC',()=>{
+        const nd=makeBoardNode(b,over12?'bnerr':'bn12',g.supply,b.draw,left12,'Remaining current',over12,'12VDC',()=>{
           boards12.splice(boards12.indexOf(entry.bid),1);renderAll();
         });
         nd.style.left=nx+'px';nd.style.top=Y1+'px';container.appendChild(nd);
       }
     });
 
-    [{y:Y0+SRC_H/2-7,t:'1st level'},{y:Y1+NODE_H/2-7,t:'2nd level'}].forEach(({y,t})=>{
+    [{y:Y0+SRC_H/2-7,t:'12VDC Supply'},{y:Y1+NODE_H/2-7,t:'12VDC'}].forEach(({y,t})=>{
       const ll=document.createElement('div');ll.className='level-label';ll.style.cssText=`top:${y}px;left:-62px`;ll.textContent=t;container.appendChild(ll);
     });
   }
