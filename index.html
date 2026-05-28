@@ -742,7 +742,7 @@ function renderGroup(g){
     `<div class="sb-cur">Supply: ${g.supply} mA</div>`+
     `<div class="sb-stats">Draw: ${totalDraw} mA</div>`+
     `<div class="sb-remaining">Remaining: ${Math.round(rem)} mA</div>`+
-    `<div class="sb-util">${utilPct(totalDraw,g.supply)} utilisation</div>`;
+    `<div class="sb-util">${utilPct(totalDraw,g.supply)} utilization</div>`;
 
   const indicator=document.createElement('div');
   indicator.className='indicator '+iCls;
@@ -948,7 +948,7 @@ function updateStatus(){
   const pill=document.getElementById('spill');
   if(groups.length===0){pill.className='pill pill-ok';pill.textContent='Ready';}
   else if(anyOver){pill.className='pill pill-err';pill.textContent='Overload detected';}
-  else if(anyWarn){pill.className='pill pill-warn';pill.textContent='High utilisation';}
+  else if(anyWarn){pill.className='pill pill-warn';pill.textContent='High utilization';}
   else{pill.className='pill pill-ok';pill.textContent='All valid';}
 }
 
