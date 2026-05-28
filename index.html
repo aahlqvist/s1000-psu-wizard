@@ -77,9 +77,10 @@
       border-radius: var(--border-radius-md);
       border: 0.5px solid var(--color-border-secondary);
       background: transparent; color: var(--color-text-secondary);
-      cursor: pointer; margin-left: auto;
+      cursor: pointer;
     }
     .btn-sm:hover { background: var(--color-background-secondary); }
+    .btn-group { display: flex; align-items: center; gap: 10px; margin-left: auto; }
 
     .body { display: grid; grid-template-columns: 328px 1fr; flex: 1; min-height: 0; }
 
@@ -98,7 +99,7 @@
     .sidebar-col .sec-lbl { margin-top: 0; }
     .sec-lbl {
       font-size: 13px; font-weight: 700; letter-spacing: .08em;
-      text-transform: uppercase; color: #ffffff;
+      text-transform: uppercase; color: var(--color-text-primary);
       margin: 7px 0 3px;
     }
     .sec-lbl:first-child { margin-top: 0; }
@@ -119,7 +120,18 @@
     .bsrc { background: #F1EFE8; color: #444441; }
 
     .canvas { position: relative; background: var(--color-background-tertiary); overflow: auto; flex: 1; }
-    .cbg { position: relative; min-width: 100%; min-height: 600px; padding: 20px; }
+    .cbg { position: relative; min-width: 100%; min-height: 600px; padding: 20px; transform-origin: top left; }
+    .zoom-bar {
+      display: flex; align-items: center; gap: 8px; margin-left: 16px;
+    }
+    .zoom-btn {
+      width: 20px; height: 20px; border: none; background: transparent;
+      color: var(--color-text-secondary); font-size: 16px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; padding: 0; line-height: 1;
+    }
+    .zoom-btn:hover { color: var(--color-text-primary); }
+    .zoom-slider { width: 90px; cursor: pointer; }
+    .zoom-label { font-size: 11px; font-weight: 500; color: var(--color-text-secondary); min-width: 36px; text-align: right; }
     .drop-msg {
       position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
       font-size: 12px; color: var(--color-text-tertiary);
@@ -268,7 +280,10 @@
       <line x1="36" y1="22" x2="44" y2="22"/>
     </svg>
     <span class="hdr-title">S1000 Power Supply Wizard</span>
-    <button class="btn-sm" id="btn-clear">Clear canvas</button>
+    <div class="btn-group">
+      <button class="btn-sm" id="btn-copy">Copy canvas</button>
+      <button class="btn-sm" id="btn-clear">Clear canvas</button>
+    </div>
   </div>
   <div class="body">
     <div class="sidebar" id="sidebar">
@@ -294,7 +309,7 @@
         </div>
       </div>
     </div>
-    <div class="canvas">
+    <div class="canvas" id="canvas-wrap">
       <div class="cbg" id="cbg">
         <div class="drop-msg" id="dmsg">Drag a <strong>24VDC</strong> or <strong>12VDC</strong> source onto the canvas</div>
       </div>
@@ -306,6 +321,12 @@
     <div class="stat"><span class="stat-l">Total draw</span><span class="stat-v" id="sdrw">0 mA</span></div>
     <div class="stat"><span class="stat-l">Remaining</span><span class="stat-v" id="srem">0 mA</span></div>
     <span class="pill pill-ok" id="spill">Ready</span>
+    <div class="zoom-bar">
+      <button class="zoom-btn" id="zoom-out" title="Zoom out">−</button>
+      <input class="zoom-slider" id="zoom-slider" type="range" min="30" max="200" step="5" value="100">
+      <button class="zoom-btn" id="zoom-in" title="Zoom in">+</button>
+      <span class="zoom-label" id="zoom-label">100%</span>
+    </div>
   </div>
 </div>
 
@@ -431,7 +452,9 @@ function touchEndTile(e){
     const rect=cbg.getBoundingClientRect();
     const x=Math.max(8,t.clientX-rect.left-SRC_W/2);
     const y=Math.max(8,t.clientY-rect.top-20);
-    groups.push({id:++gid,volt:dragPayload.volt,x,y,supply:2000,boards24:[],outputs:{}});
+    const newG={id:++gid,volt:dragPayload.volt,x,y,supply:2000,boards24:[],outputs:{}};
+    groups.push(newG);
+    resolveCollisions(newG);
     dragPayload=null;removeGhost();renderAll();return;
   }
 
@@ -488,14 +511,16 @@ cbg.addEventListener('drop',e=>{
   const rect=cbg.getBoundingClientRect();
   const x=Math.max(8,e.clientX-rect.left-SRC_W/2);
   const y=Math.max(8,e.clientY-rect.top-20);
-  groups.push({id:++gid,volt:dragPayload.volt,x,y,supply:2000,boards24:[],outputs:{}});
+  const newG={id:++gid,volt:dragPayload.volt,x,y,supply:2000,boards24:[],outputs:{}};
+  groups.push(newG);
+  resolveCollisions(newG);
   dragPayload=null;renderAll();
 });
 
 function indClass(draw,supply){
   const p=draw/supply;
   if(p>1) return 'ind-over';
-  if(p>=0.8) return 'ind-warn';
+  if(p>0.8) return 'ind-warn';
   return 'ind-ok';
 }
 function utilPct(draw,supply){return Math.round(draw/supply*100)+'%';}
@@ -601,6 +626,73 @@ function makeBoardNode(b,cls,rcv,draw,right,label,short,rail,onRemove){
   return d;
 }
 
+// ── Collision avoidance ──────────────────────────────────────────
+const PADDING=20; // gap to maintain between groups
+
+function getGroupBounds(g){
+  const SLOT=NODE_W+COL_GAP;
+  let totalCols=1;
+  if(g.volt===24){
+    const l1=g.boards24.length+1;
+    const l2=g.boards24.reduce((a,{uid})=>a+(g.outputs[uid]||[]).length+1,0);
+    totalCols=Math.max(l1,l2,1);
+  } else {
+    totalCols=Math.max((g.outputs['__src']||[]).length+1,1);
+  }
+  const w=Math.max(SRC_W,totalCols*SLOT-COL_GAP)+20;
+  const h=g.volt===24
+    ? SRC_H+ROW_GAP+NODE_H+ROW_GAP+NODE_H+20
+    : SRC_H+ROW_GAP+NODE_H+20;
+  // x accounts for the 70px level-label column to the left of the group
+  return{x:g.x-70, y:g.y, w:w+70, h};
+}
+
+function boxesOverlap(a,b){
+  return a.x<b.x+b.w+PADDING && a.x+a.w+PADDING>b.x &&
+         a.y<b.y+b.h+PADDING && a.y+a.h+PADDING>b.y;
+}
+
+function resolveCollisions(moved){
+  const MAX_ATTEMPTS=40;
+  for(let attempt=0;attempt<MAX_ATTEMPTS;attempt++){
+    let anyOverlap=false;
+    for(const other of groups){
+      if(other.id===moved.id) continue;
+      const ma=getGroupBounds(moved);
+      const oa=getGroupBounds(other);
+      if(!boxesOverlap(ma,oa)) continue;
+      anyOverlap=true;
+      const overlapX=Math.min(ma.x+ma.w+PADDING-oa.x, oa.x+oa.w+PADDING-ma.x);
+      const overlapY=Math.min(ma.y+ma.h+PADDING-oa.y, oa.y+oa.h+PADDING-ma.y);
+      const resolveHoriz=overlapX<=overlapY;
+      if(resolveHoriz){
+        const pushRight=ma.x+ma.w/2 < oa.x+oa.w/2;
+        const newX=pushRight ? moved.x-overlapX : moved.x+overlapX;
+        if(newX<4){
+          // moved is pinned at left edge — push other right instead
+          other.x+=overlapX+(4-newX);
+        } else {
+          moved.x=newX;
+        }
+      } else {
+        const pushDown=ma.y+ma.h/2 < oa.y+oa.h/2;
+        const newY=pushDown ? moved.y-overlapY : moved.y+overlapY;
+        if(newY<4){
+          // moved is pinned at top edge — push other down instead
+          other.y+=overlapY+(4-newY);
+        } else {
+          moved.y=newY;
+        }
+      }
+      moved.x=Math.max(4,moved.x);
+      moved.y=Math.max(4,moved.y);
+      other.x=Math.max(4,other.x);
+      other.y=Math.max(4,other.y);
+    }
+    if(!anyOverlap) break;
+  }
+}
+
 function renderGroup(g){
   const SLOT=NODE_W+COL_GAP;
   const Y0=0,Y1=SRC_H+ROW_GAP,Y2=Y1+NODE_H+ROW_GAP;
@@ -702,8 +794,12 @@ function renderGroup(g){
     g.x=Math.max(4,e.touches[0].clientX-pr.left-ox-70);g.y=Math.max(4,e.touches[0].clientY-pr.top-oy);
     container.style.left=(g.x+70)+'px';container.style.top=g.y+'px';
   },{passive:false});
-  document.addEventListener('mouseup',()=>{if(dragging){dragging=false;srcBlock.style.cursor='grab';}});
-  document.addEventListener('touchend',()=>{if(dragging){dragging=false;}});
+  document.addEventListener('mouseup',()=>{
+    if(dragging){dragging=false;srcBlock.style.cursor='grab';resolveCollisions(g);renderAll();}
+  });
+  document.addEventListener('touchend',()=>{
+    if(dragging){dragging=false;resolveCollisions(g);renderAll();}
+  });
   container.appendChild(srcBlock);
 
   const c24color='#534AB7';
@@ -833,6 +929,8 @@ function renderAll(){
   cbg.innerHTML='';
   dmsg.style.display=groups.length===0?'block':'none';
   if(groups.length===0){cbg.appendChild(dmsg);updateStatus();return;}
+  // Resolve collisions for every group so board additions never cause overlap
+  groups.forEach(g=>resolveCollisions(g));
   groups.forEach(g=>cbg.appendChild(renderGroup(g)));
   updateStatus();
 }
@@ -842,7 +940,7 @@ function updateStatus(){
   const totalDrw=groups.reduce((a,g)=>a+groupTotalDraw(g),0);
   const rem=totalSup-totalDrw;
   const anyOver=groups.some(g=>groupHasOverload(g));
-  const anyWarn=groups.some(g=>{const p=groupTotalDraw(g)/g.supply;return p>=0.8&&p<=1;});
+  const anyWarn=groups.some(g=>{const p=groupTotalDraw(g)/g.supply;return p>0.8&&p<=1;});
   document.getElementById('ss').textContent=groups.length;
   document.getElementById('ssup').textContent=totalSup+' mA';
   document.getElementById('sdrw').textContent=totalDrw+' mA';
@@ -854,8 +952,67 @@ function updateStatus(){
   else{pill.className='pill pill-ok';pill.textContent='All valid';}
 }
 
+// ── Zoom ────────────────────────────────────────────────────────
+let zoomLevel=100;
+const zoomSlider=document.getElementById('zoom-slider');
+const zoomLabel=document.getElementById('zoom-label');
+
+function applyZoom(z){
+  zoomLevel=Math.min(200,Math.max(30,z));
+  cbg.style.transform=`scale(${zoomLevel/100})`;
+  cbg.style.transformOrigin='top left';
+  // Expand the scroll container so scrollbars reflect actual scaled size
+  cbg.style.marginRight=`${Math.max(0,(zoomLevel/100-1)*cbg.scrollWidth)}px`;
+  cbg.style.marginBottom=`${Math.max(0,(zoomLevel/100-1)*cbg.scrollHeight)}px`;
+  zoomSlider.value=zoomLevel;
+  zoomLabel.textContent=zoomLevel+'%';
+}
+
+zoomSlider.addEventListener('input',()=>applyZoom(parseInt(zoomSlider.value)));
+document.getElementById('zoom-in').addEventListener('click',()=>applyZoom(zoomLevel+10));
+document.getElementById('zoom-out').addEventListener('click',()=>applyZoom(zoomLevel-10));
+
+document.getElementById('canvas-wrap').addEventListener('wheel',e=>{
+  if(!e.ctrlKey&&!e.metaKey) return;
+  e.preventDefault();
+  const delta=e.deltaY>0?-10:10;
+  applyZoom(zoomLevel+delta);
+},{passive:false});
+
 buildSidebar();
 renderAll();
+
+document.getElementById('btn-copy').addEventListener('click',async()=>{
+  const btn=document.getElementById('btn-copy');
+  const canvasEl=document.getElementById('cbg');
+  btn.textContent='Capturing…';btn.disabled=true;
+  try{
+    const shot=await html2canvas(canvasEl,{
+      backgroundColor: getComputedStyle(canvasEl).backgroundColor||'#f0efec',
+      scale:2,
+      useCORS:true,
+      logging:false
+    });
+    shot.toBlob(async blob=>{
+      if(!blob){btn.textContent='Failed';setTimeout(()=>{btn.textContent='Copy canvas';btn.disabled=false;},2000);return;}
+      try{
+        await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);
+        btn.textContent='Copied!';
+      } catch(e){
+        // fallback: download as PNG
+        const url=URL.createObjectURL(blob);
+        const a=document.createElement('a');a.href=url;a.download='s1000-canvas.png';a.click();
+        URL.revokeObjectURL(url);
+        btn.textContent='Saved!';
+      }
+      setTimeout(()=>{btn.textContent='Copy canvas';btn.disabled=false;},2000);
+    },'image/png');
+  } catch(err){
+    btn.textContent='Error';
+    setTimeout(()=>{btn.textContent='Copy canvas';btn.disabled=false;},2000);
+  }
+});
 </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </body>
 </html>
