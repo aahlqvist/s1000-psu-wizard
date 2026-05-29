@@ -82,7 +82,7 @@
     .btn-sm:hover { background: var(--color-background-secondary); }
     .btn-group { display: flex; align-items: center; gap: 10px; margin-left: auto; }
 
-    .body { display: grid; grid-template-columns: 328px 1fr; flex: 1; min-height: 0; }
+    .body { display: grid; grid-template-columns: 490px 1fr; flex: 1; min-height: 0; }
 
     .sidebar {
       border-right: 0.5px solid var(--color-border-tertiary);
@@ -92,8 +92,7 @@
       overflow-y: auto;
     }
     .sidebar-cols {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 0 10px; flex: 1;
-      margin-top: 25px;
+      display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0 10px; flex: 1;
     }
     .sidebar-col { display: flex; flex-direction: column; gap: 5px; }
     .sidebar-col .sec-lbl { margin-top: 0; }
@@ -297,25 +296,36 @@
   </div>
   <div class="body">
     <div class="sidebar" id="sidebar">
-      <div class="sec-lbl">Power sources</div>
-      <div style="display:flex;gap:8px;margin-bottom:2px">
-        <div class="tile" draggable="true" id="tsrc24" style="flex:1" data-tip='"Use for 24VDC capable boards"'>
-          <div class="tile-name">24VDC source</div>
-          <div class="tile-badges"><span class="badge bv24">24VDC</span></div>
-        </div>
-        <div class="tile" draggable="true" id="tsrc12" style="flex:1" data-tip='"Use for 12VDC capable boards"'>
-          <div class="tile-name">12VDC source</div>
-          <div class="tile-badges"><span class="badge bv12">12VDC</span></div>
-        </div>
-      </div>
       <div class="sidebar-cols">
         <div class="sidebar-col">
-          <div class="sec-lbl" style="color:#534AB7">24VDC boards</div>
+          <div class="sec-lbl">Power sources</div>
+          <div class="tile" draggable="true" id="tsrc24" data-tip="Use for 24VDC capable boards">
+            <div class="tile-name">24VDC source</div>
+            <div class="tile-badges"><span class="badge bv24">24VDC</span></div>
+          </div>
+          <div style="margin-top:25px">
+            <div class="sec-lbl" style="color:#534AB7">24VDC boards</div>
+          </div>
           <div id="sb24"></div>
         </div>
         <div class="sidebar-col">
-          <div class="sec-lbl" style="color:#0F6E56">12VDC boards</div>
+          <div class="sec-lbl">&nbsp;</div>
+          <div class="tile" draggable="true" id="tsrc12" data-tip="Use for 12VDC capable boards">
+            <div class="tile-name">12VDC source</div>
+            <div class="tile-badges"><span class="badge bv12">12VDC</span></div>
+          </div>
+          <div style="margin-top:25px">
+            <div class="sec-lbl" style="color:#0F6E56">12VDC boards</div>
+          </div>
           <div id="sb12"></div>
+        </div>
+        <div class="sidebar-col">
+          <div class="sec-lbl">&nbsp;</div>
+          <div style="visibility:hidden"><div class="tile"><div class="tile-name">&nbsp;</div><div class="tile-badges"><span class="badge">&nbsp;</span></div></div></div>
+          <div style="margin-top:25px">
+            <div class="sec-lbl" style="color:#0F6E56">3millID Readers</div>
+          </div>
+          <div id="sb3mill"></div>
         </div>
       </div>
     </div>
@@ -357,15 +367,19 @@ const BOARDS=[
   {id:'remio24',  name:'REMIO',     draw:1420, passP:.85, outputFixed:500, v24:true},
   {id:'minio24',  name:'MINIO',     draw:640,  passP:.85, outputFixed:500, v24:true},
   // 12VDC — alphabetical
-  {id:'2adi',     name:'2ADI',      draw:60,   passP:1.0, v24:false},
-  {id:'audio4',   name:'AUDIO4',    draw:800,  passP:1.0, v24:false},
-  {id:'audio8',   name:'AUDIO8',    draw:680,  passP:1.0, v24:false},
-  {id:'crio',     name:'CRIO',      draw:50,   passP:1.0, v24:false},
-  {id:'keypad',   name:'Keypad',    draw:100,  passP:1.0, v24:false},
-  {id:'minicam',  name:'MINICAM',   draw:50,   passP:1.0, v24:false},
-  {id:'minio12',  name:'MINIO',     draw:640,  passP:1.0, v24:false},
-  {id:'powerg',   name:'POWERG',    draw:60,   passP:1.0, v24:false},
-  {id:'remio12',  name:'REMIO',     draw:1420, passP:1.0, v24:false},
+  {id:'2adi',     name:'2ADI',        draw:60,   passP:1.0, v24:false},
+  {id:'audio4',   name:'AUDIO4',      draw:800,  passP:1.0, v24:false},
+  {id:'audio8',   name:'AUDIO8',      draw:680,  passP:1.0, v24:false},
+  {id:'crio',     name:'CRIO',        draw:50,   passP:1.0, v24:false},
+  {id:'keypad',   name:'Keypad',      draw:100,  passP:1.0, v24:false},
+  {id:'minicam',  name:'MINICAM',     draw:50,   passP:1.0, v24:false},
+  {id:'minio12',  name:'MINIO',       draw:640,  passP:1.0, v24:false},
+  {id:'powerg',   name:'POWERG',      draw:60,   passP:1.0, v24:false},
+  {id:'remio12',  name:'REMIO',       draw:1420, passP:1.0, v24:false},
+  // 3millID Readers — same connections as 12VDC boards
+  {id:'mill_mul', name:'Mullion Reader',     draw:75,   passP:1.0, v24:false, cat:'3mill'},
+  {id:'mill_sg',  name:'Single Gang Reader', draw:75,   passP:1.0, v24:false, cat:'3mill'},
+  {id:'mill_sgk', name:'S-Gang Keypad Reader',draw:100, passP:1.0, v24:false, cat:'3mill'},
 ];
 
 const SUPPLY_OPTIONS=[500,1000,1500,2000,2500,3000,3500,4000,4500,5000];
@@ -490,11 +504,11 @@ document.addEventListener('mousemove',ev=>{
 });
 
 function buildSidebar(){
-  ['sb24','sb12'].forEach(id=>document.getElementById(id).innerHTML='');
+  ['sb24','sb12','sb3mill'].forEach(id=>document.getElementById(id).innerHTML='');
   BOARDS.forEach(b=>{
     const tip=b.v24
-      ? '"Connect to a 24VDC source"'
-      : '"Connect to a 12VDC source or to a 24VDC capable board with 12VDC output"';
+      ? 'Connect to a 24VDC source'
+      : 'Connect to a 12VDC source or to a 24VDC capable board with 12VDC output';
     const t=document.createElement('div');t.className='tile';t.draggable=true;
     t.dataset.tip=tip;
     t.innerHTML=`<div class="tile-name">${b.name}</div>
@@ -507,7 +521,9 @@ function buildSidebar(){
     t.addEventListener('touchmove',touchMoveTile,{passive:false});
     t.addEventListener('touchend',touchEndTile,{passive:false});
     attachSbTip(t);
-    document.getElementById(b.v24?'sb24':'sb12').appendChild(t);
+    if(b.v24) document.getElementById('sb24').appendChild(t);
+    else if(b.cat==='3mill') document.getElementById('sb3mill').appendChild(t);
+    else document.getElementById('sb12').appendChild(t);
   });
 }
 
