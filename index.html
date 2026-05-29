@@ -124,6 +124,16 @@
     .zoom-bar {
       display: flex; align-items: center; gap: 8px; margin-left: 16px;
     }
+    /* Sidebar hover tooltips — now JS-driven, remove CSS version */
+    .sb-tip {
+      position: fixed; z-index: 9999; pointer-events: none; display: none;
+      background: var(--color-background-primary);
+      border: 0.5px solid var(--color-border-secondary);
+      border-radius: var(--border-radius-md);
+      padding: 7px 11px; font-size: 11px; font-style: italic;
+      color: var(--color-text-secondary); max-width: 200px;
+      line-height: 1.5; box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
     .zoom-btn {
       width: 20px; height: 20px; border: none; background: transparent;
       color: var(--color-text-secondary); font-size: 16px; cursor: pointer;
@@ -134,7 +144,7 @@
     .zoom-label { font-size: 11px; font-weight: 500; color: var(--color-text-secondary); min-width: 36px; text-align: right; }
     .drop-msg {
       position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
-      font-size: 12px; color: var(--color-text-tertiary);
+      font-size: 24px; color: #E07B00;
       text-align: center; line-height: 2.4;
       pointer-events: none; user-select: none;
     }
@@ -281,19 +291,19 @@
     </svg>
     <span class="hdr-title">S1000 Power Supply Wizard</span>
     <div class="btn-group">
-      <button class="btn-sm" id="btn-copy">Copy canvas</button>
-      <button class="btn-sm" id="btn-clear">Clear canvas</button>
+      <button class="btn-sm" id="btn-copy" data-tip="Copies the current design to the clipboard for easy sharing">Copy canvas</button>
+      <button class="btn-sm" id="btn-clear" data-tip="Start from scratch">Clear canvas</button>
     </div>
   </div>
   <div class="body">
     <div class="sidebar" id="sidebar">
       <div class="sec-lbl">Power sources</div>
       <div style="display:flex;gap:8px;margin-bottom:2px">
-        <div class="tile" draggable="true" id="tsrc24" style="flex:1">
+        <div class="tile" draggable="true" id="tsrc24" style="flex:1" data-tip='"Use for 24VDC capable boards"'>
           <div class="tile-name">24VDC source</div>
           <div class="tile-badges"><span class="badge bv24">24VDC</span></div>
         </div>
-        <div class="tile" draggable="true" id="tsrc12" style="flex:1">
+        <div class="tile" draggable="true" id="tsrc12" style="flex:1" data-tip='"Use for 12VDC capable boards"'>
           <div class="tile-name">12VDC source</div>
           <div class="tile-badges"><span class="badge bv12">12VDC</span></div>
         </div>
@@ -311,7 +321,7 @@
     </div>
     <div class="canvas" id="canvas-wrap">
       <div class="cbg" id="cbg">
-        <div class="drop-msg" id="dmsg">Drag a <strong>24VDC</strong> or <strong>12VDC</strong> source onto the canvas</div>
+        <div class="drop-msg" id="dmsg">Drag <strong>24VDC</strong> and/or <strong>12VDC</strong> power sources from the left sidebar onto this empty canvas to start your adventure. Then add boards of the corresponding voltage rail to build out your system.</div>
       </div>
     </div>
   </div>
@@ -337,6 +347,7 @@
   <div class="ttr"><span class="ttl" id="tpl">Output current</span><span class="ttv" id="tp"></span></div>
   <div class="ttr"><span class="ttl">Status</span><span class="ttv" id="tst"></span></div>
 </div>
+<div class="sb-tip" id="sb-tip"></div>
 
 <script>
 const BOARDS=[
@@ -481,7 +492,11 @@ document.addEventListener('mousemove',ev=>{
 function buildSidebar(){
   ['sb24','sb12'].forEach(id=>document.getElementById(id).innerHTML='');
   BOARDS.forEach(b=>{
+    const tip=b.v24
+      ? '"Connect to a 24VDC source"'
+      : '"Connect to a 12VDC source or to a 24VDC capable board with 12VDC output"';
     const t=document.createElement('div');t.className='tile';t.draggable=true;
+    t.dataset.tip=tip;
     t.innerHTML=`<div class="tile-name">${b.name}</div>
       <div class="tile-badges">
         <span class="badge ${b.v24?'bv24':'bv12'}">${b.v24?'24VDC':'12VDC'}</span>
@@ -491,6 +506,7 @@ function buildSidebar(){
     t.addEventListener('touchstart',e=>touchStartTile(e,{type:'board',bid:b.id},b.name),{passive:false});
     t.addEventListener('touchmove',touchMoveTile,{passive:false});
     t.addEventListener('touchend',touchEndTile,{passive:false});
+    attachSbTip(t);
     document.getElementById(b.v24?'sb24':'sb12').appendChild(t);
   });
 }
@@ -633,9 +649,8 @@ function getGroupBounds(g){
   const SLOT=NODE_W+COL_GAP;
   let totalCols=1;
   if(g.volt===24){
-    const l1=g.boards24.length+1;
     const l2=g.boards24.reduce((a,{uid})=>a+(g.outputs[uid]||[]).length+1,0);
-    totalCols=Math.max(l1,l2,1);
+    totalCols=Math.max(l2+1,g.boards24.length+1,1);
   } else {
     totalCols=Math.max((g.outputs['__src']||[]).length+1,1);
   }
@@ -643,7 +658,6 @@ function getGroupBounds(g){
   const h=g.volt===24
     ? SRC_H+ROW_GAP+NODE_H+ROW_GAP+NODE_H+20
     : SRC_H+ROW_GAP+NODE_H+20;
-  // x accounts for the 70px level-label column to the left of the group
   return{x:g.x-70, y:g.y, w:w+70, h};
 }
 
@@ -708,7 +722,8 @@ function renderGroup(g){
       return [...arr.map(bid12=>({uid,bid12,type:'board12'})),{uid,type:'add12'}];
     });
     const l2Total=l2PerBoard.reduce((a,arr)=>a+arr.length,0);
-    totalCols=Math.max(l1Entries.length,l2Total,1);
+    // +1 for the add-24VDC drop zone which sits after all L2 columns
+    totalCols=Math.max(l2Total+1,l1Entries.length,1);
   } else {
     if(!g.outputs['__src']) g.outputs['__src']=[];
     l1Entries=[...(g.outputs['__src']).map(bid=>({bid,type:'board12'})),{type:'add12'}];
@@ -806,9 +821,34 @@ function renderGroup(g){
   const c12color=g.volt===24?'#5DCAA5':'#0F6E56';
 
   if(g.volt===24){
-    const l1Total=l1Entries.length*SLOT-COL_GAP;
-    const l1StartX=(totalW-l1Total)/2;
-    const l1Xs=l1Entries.map((_,i)=>l1StartX+i*SLOT);
+    // ── Layout: each L1 board is centred over its own L2 block ──
+    // l2PerBoard[i] has (boards + 1 add-drop) entries for board i
+    // Compute cumulative L2 column starts
+    let l2ColIdx=0;
+    const l2StartCols=[];
+    l2PerBoard.forEach(arr=>{l2StartCols.push(l2ColIdx);l2ColIdx+=arr.length;});
+    const l2TotalCols=l2ColIdx;
+    const l2BlockW=l2TotalCols>0?l2TotalCols*SLOT-COL_GAP:0;
+
+    // Add one extra SLOT for the +24VDC add-drop at the end
+    const addDropSlotStart=l2TotalCols;
+    const totalL2withAdd=l2TotalCols+1;
+    const fullW=totalL2withAdd*SLOT-COL_GAP;
+    const l2OriginX=(totalW-Math.max(fullW,SRC_W))/2;
+
+    // L1 x = centre of each board's L2 block, minus half NODE_W
+    const l1Xs=l1Entries.map((entry,i)=>{
+      if(entry.type==='add24'){
+        // Position add-drop after all L2 blocks
+        const cx=l2OriginX+addDropSlotStart*SLOT+NODE_W/2;
+        return cx-NODE_W/2;
+      }
+      const bidx=g.boards24.findIndex(x=>x.uid===entry.uid);
+      const start=l2StartCols[bidx];
+      const count=l2PerBoard[bidx].length;
+      const blockCX=l2OriginX+start*SLOT+(count*SLOT-COL_GAP)/2;
+      return blockCX-NODE_W/2;
+    });
     const l1CXs=l1Xs.map(x=>x+NODE_W/2);
 
     if(l1CXs.length===1){
@@ -819,13 +859,6 @@ function renderGroup(g){
       svgHBar(svg,mn,midY,mx,c24color);
       l1CXs.forEach((cx,i)=>svgVLine(svg,cx,midY,Y1,c24color,l1Entries[i].type==='add24'));
     }
-
-    let l2ColIdx=0;
-    const l2StartCols=[];
-    l2PerBoard.forEach(arr=>{l2StartCols.push(l2ColIdx);l2ColIdx+=arr.length;});
-    const l2TotalCols=l2ColIdx;
-    const l2BlockW=l2TotalCols*SLOT-COL_GAP;
-    const l2OriginX=(totalW-Math.max(l2BlockW,0))/2;
 
     l1Entries.forEach((entry,i)=>{
       const nx=l1Xs[i];
@@ -839,7 +872,11 @@ function renderGroup(g){
         const bidx=g.boards24.findIndex(x=>x.uid===uid);
         const b=BOARDS.find(x=>x.id===bid);
         const c=calc24(b,g.supply);
-        const nd=makeBoardNode(b,c.short?'bnerr':'bn24',g.supply,b.draw,c.passed,'Output current',c.short,'24VDC',()=>{
+        const outArr=g.outputs[uid]||[];
+        const totalOut12=outArr.reduce((a,b12)=>a+BOARDS.find(x=>x.id===b12).draw,0);
+        const left12=Math.max(0,c.passed-totalOut12);
+        const over12=totalOut12>c.passed;
+        const nd=makeBoardNode(b,c.short?'bnerr':'bn24',g.supply,b.draw,left12,'Remaining current',c.short,'24VDC',()=>{
           g.boards24.splice(bidx,1);delete g.outputs[uid];renderAll();
         });
         nd.style.left=nx+'px';nd.style.top=Y1+'px';container.appendChild(nd);
@@ -849,13 +886,20 @@ function renderGroup(g){
         const l2CXs=l2Xs.map(x=>x+NODE_W/2);
         const boardCX=nx+NODE_W/2;
         const boardBottomY=Y1+NODE_H;
-        const outArr=g.outputs[uid]||[];
-        const totalOut12=outArr.reduce((a,b12)=>a+BOARDS.find(x=>x.id===b12).draw,0);
-        const left12=Math.max(0,c.passed-totalOut12);
-        const over12=totalOut12>c.passed;
 
         if(l2CXs.length===1){
-          svgVLine(svg,l2CXs[0],boardBottomY,Y2,c12color,l2arr[0].type==='add12');
+          // Single child — draw straight down from board centre to child centre,
+          // using an elbow if they don't align
+          const childCX=l2CXs[0];
+          const isDrop=l2arr[0].type==='add12';
+          if(Math.abs(boardCX-childCX)<2){
+            svgVLine(svg,boardCX,boardBottomY,Y2,c12color,isDrop);
+          } else {
+            const mid2Y=(boardBottomY+Y2)/2;
+            svgVLine(svg,boardCX,boardBottomY,mid2Y,c12color,isDrop);
+            svgHBar(svg,Math.min(boardCX,childCX),mid2Y,Math.max(boardCX,childCX),c12color);
+            svgVLine(svg,childCX,mid2Y,Y2,c12color,isDrop);
+          }
         } else {
           const mn2=Math.min(...l2CXs),mx2=Math.max(...l2CXs),mid2Y=(boardBottomY+Y2)/2;
           svgVLine(svg,boardCX,boardBottomY,mid2Y,c12color,false);
@@ -978,6 +1022,26 @@ document.getElementById('canvas-wrap').addEventListener('wheel',e=>{
   const delta=e.deltaY>0?-10:10;
   applyZoom(zoomLevel+delta);
 },{passive:false});
+
+// ── Sidebar hover tooltips ──────────────────────────────────────
+const sbTip=document.getElementById('sb-tip');
+
+function attachSbTip(el){
+  el.addEventListener('mouseenter',e=>{
+    sbTip.textContent=el.dataset.tip;
+    sbTip.style.display='block';
+    sbTip.style.left=(e.clientX+14)+'px';
+    sbTip.style.top=(e.clientY-8)+'px';
+  });
+  el.addEventListener('mousemove',e=>{
+    sbTip.style.left=(e.clientX+14)+'px';
+    sbTip.style.top=(e.clientY-8)+'px';
+  });
+  el.addEventListener('mouseleave',()=>{sbTip.style.display='none';});
+}
+
+// Attach after DOM ready — source tiles use data-tip already in HTML
+document.querySelectorAll('[data-tip]').forEach(attachSbTip);
 
 buildSidebar();
 renderAll();
