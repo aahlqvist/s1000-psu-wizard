@@ -166,7 +166,7 @@
       display: flex; align-items: center; justify-content: center; padding: 0; line-height: 1;
     }
     .zoom-btn:hover { color: var(--color-text-primary); }
-    .zoom-slider { width: 90px; cursor: pointer; }
+    .zoom-slider { width: 90px; cursor: pointer; accent-color: #C41E2A; }
     .zoom-label { font-size: 11px; font-weight: 500; color: var(--color-text-secondary); min-width: 36px; text-align: right; }
     .drop-msg {
       position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
@@ -1094,6 +1094,7 @@ function setBrand(isPacom){
     logoPacom.classList.remove('active');
   }
   buildSidebar();
+  document.getElementById('zoom-slider').style.accentColor=isPacom?'#0072B8':'#C41E2A';
 }
 
 brandSwitch.addEventListener('click',()=>{
