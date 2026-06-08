@@ -42,11 +42,12 @@
       background: var(--color-background-tertiary);
       color: var(--color-text-primary);
       font-size: 13px;
-      min-height: 100vh;
+      height: 100vh;
       display: flex;
-      align-items: flex-start;
+      align-items: stretch;
       justify-content: center;
-      padding: 24px 16px;
+      padding: 16px;
+      overflow: hidden;
     }
 
     .app {
@@ -56,7 +57,7 @@
       background: var(--color-background-primary);
       display: flex;
       flex-direction: column;
-      min-height: 700px;
+      height: 100%;
       width: 100%;
       max-width: 1200px;
       box-shadow: 0 2px 16px rgba(0,0,0,0.08);
@@ -108,7 +109,7 @@
     .toggle-track.right .toggle-knob { left: 23px; }
     .toggle-track.right { background: #0072B8; border-color: #005A94; }
 
-    .body { display: grid; grid-template-columns: 490px 1fr; flex: 1; min-height: 0; }
+    .body { display: grid; grid-template-columns: 490px 1fr; flex: 1; min-height: 0; overflow: hidden; }
 
     .sidebar {
       border-right: 0.5px solid var(--color-border-tertiary);
