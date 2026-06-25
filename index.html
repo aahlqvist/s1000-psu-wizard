@@ -334,7 +334,7 @@
         <div class="sidebar-col">
           <div class="sec-lbl">Power sources</div>
           <div class="tile" draggable="true" id="tsrc24" data-tip="Use for 24VDC capable boards">
-            <div class="tile-name">24VDC source</div>
+            <div class="tile-name">24VDC Source</div>
             <div class="tile-badges"><span class="badge bv24">24VDC</span></div>
           </div>
           <div style="margin-top:25px">
@@ -345,7 +345,7 @@
         <div class="sidebar-col">
           <div class="sec-lbl">&nbsp;</div>
           <div class="tile" draggable="true" id="tsrc12" data-tip="Use for 12VDC capable boards">
-            <div class="tile-name">12VDC source</div>
+            <div class="tile-name">12VDC Source</div>
             <div class="tile-badges"><span class="badge bv12">12VDC</span></div>
           </div>
           <div style="margin-top:25px">
@@ -543,8 +543,8 @@ function buildSidebar(){
     // Hide MINIO when Sonitrol is active
     if(!isPacomBrand && (b.id==='minio24'||b.id==='minio12')) return;
     const tip=b.v24
-      ? 'Connect to a 24VDC source'
-      : 'Connect to a 12VDC source or to a 24VDC capable board with 12VDC output';
+      ? 'Connect to a 24VDC Source'
+      : 'Connect to a 12VDC Source or to a 24VDC capable board with 12VDC output';
     const t=document.createElement('div');t.className='tile';t.draggable=true;
     t.dataset.tip=tip;
     t.innerHTML=`<div class="tile-name">${b.name}</div>
@@ -565,10 +565,10 @@ function buildSidebar(){
 
 document.getElementById('tsrc24').addEventListener('dragstart',e=>{dragPayload={type:'src',volt:24};e.dataTransfer.effectAllowed='copy';});
 document.getElementById('tsrc12').addEventListener('dragstart',e=>{dragPayload={type:'src',volt:12};e.dataTransfer.effectAllowed='copy';});
-document.getElementById('tsrc24').addEventListener('touchstart',e=>touchStartTile(e,{type:'src',volt:24},'24VDC source'),{passive:false});
+document.getElementById('tsrc24').addEventListener('touchstart',e=>touchStartTile(e,{type:'src',volt:24},'24VDC Source'),{passive:false});
 document.getElementById('tsrc24').addEventListener('touchmove',touchMoveTile,{passive:false});
 document.getElementById('tsrc24').addEventListener('touchend',touchEndTile,{passive:false});
-document.getElementById('tsrc12').addEventListener('touchstart',e=>touchStartTile(e,{type:'src',volt:12},'12VDC source'),{passive:false});
+document.getElementById('tsrc12').addEventListener('touchstart',e=>touchStartTile(e,{type:'src',volt:12},'12VDC Source'),{passive:false});
 document.getElementById('tsrc12').addEventListener('touchmove',touchMoveTile,{passive:false});
 document.getElementById('tsrc12').addEventListener('touchend',touchEndTile,{passive:false});
 
